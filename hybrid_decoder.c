@@ -33,7 +33,7 @@ typedef struct {
 
 static void *hybrid_dec_newctx(void *provctx)
 {
-    HYBRID_PROV_CTX *pctx = provctx;
+    HYBRID_PROV_CTX *pctx = HYBRID_ENTRY_CTX(provctx);
     HYBRID_DEC_CTX *ctx = OPENSSL_zalloc(sizeof(*ctx));
 
     if (ctx != NULL) {

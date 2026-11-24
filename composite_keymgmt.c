@@ -535,12 +535,12 @@ err:
 #define DECLARE_COMPOSITE_KMGMT(cf, idx)                                       \
     static void *composite_##cf##_new(void *provctx)                          \
     {                                                                          \
-        return composite_key_new(provctx, &composite_sig_table[idx]);         \
+        return composite_key_new(HYBRID_ENTRY_CTX(provctx), &composite_sig_table[idx]);         \
     }                                                                          \
     static void *composite_##cf##_gen_init(void *provctx, int selection,      \
                                            const OSSL_PARAM params[])          \
     {                                                                          \
-        return composite_gen_init_info(provctx, &composite_sig_table[idx]);   \
+        return composite_gen_init_info(HYBRID_ENTRY_CTX(provctx), &composite_sig_table[idx]);   \
     }                                                                          \
     const OSSL_DISPATCH composite_##cf##_kmgmt_functions[] = {                 \
         { OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))composite_##cf##_new },       \
