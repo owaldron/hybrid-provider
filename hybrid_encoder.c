@@ -434,7 +434,7 @@ typedef struct {
 
 static void *hybrid_enc_newctx(void *provctx)
 {
-    HYBRID_PROV_CTX *pctx = provctx;
+    HYBRID_PROV_CTX *pctx = HYBRID_ENTRY_CTX(provctx);
     HYBRID_ENC_CTX *ctx = OPENSSL_zalloc(sizeof(*ctx));
 
     if (ctx != NULL && pctx != NULL) {

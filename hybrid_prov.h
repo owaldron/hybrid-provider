@@ -123,7 +123,49 @@ typedef struct {
     int filter_enabled;
     OSSL_ALGORITHM *keymgmts_rt, *kems_rt, *signatures_rt,
         *encoders_rt, *decoders_rt;
+    /*
+     * Embedded mode only (see hybrid_embed.h): a host-supplied predicate that
+     * decides which of this provider's algorithms the host exposes. Names it
+     * rejects are withdrawn exactly like ceded ones (same tables, same
+     * capability filter). NULL in the standalone module: everything allowed.
+     */
+    int (*allow)(const char *alg_name);
 } HYBRID_PROV_CTX;
+
+/*
+ * The provider name used in every algorithm's property definition
+ * ("provider=<name>"). Standalone that is "hybrid"; an embedding host sets it
+ * to its own name (CMake HYBRID_EMBED_PROVIDER_NAME) so `provider=<host>`
+ * queries keep matching the embedded algorithms.
+ */
+#ifndef HYBRID_PROVIDER_NAME
+# define HYBRID_PROVIDER_NAME "hybrid"
+#endif
+
+/*
+ * Entry-point provider context. OpenSSL hands every algorithm function the
+ * provctx of the provider that registered it. Standalone that is our own
+ * HYBRID_PROV_CTX; embedded (hybrid_embed.h) it is the HOST's provctx, which the
+ * host maps back to the embedded instance via the resolver it registered at
+ * hybrid_embed_init. Apply only where a raw core-supplied provctx enters
+ * (keymgmt new/gen_init, encoder/decoder newctx), never to an already-resolved
+ * one passed between internal helpers.
+ */
+#ifdef HYBRID_EMBEDDED
+void *hybrid_embed_resolve(void *host_provctx);
+# define HYBRID_ENTRY_CTX(p) hybrid_embed_resolve(p)
+#else
+# define HYBRID_ENTRY_CTX(p) (p)
+#endif
+
+/*
+ * Shared body of the standalone OSSL_provider_init and hybrid_embed_init.
+ * `allow` is NULL for the standalone module.
+ */
+int hybrid_prov_init_ex(const OSSL_CORE_HANDLE *handle,
+                        const OSSL_DISPATCH *in,
+                        const OSSL_DISPATCH **out, void **provctx,
+                        int (*allow)(const char *alg_name));
 
 /*
  * True if `name` is an algorithm this instance withdrew because the default

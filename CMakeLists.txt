@@ -232,8 +232,8 @@ else()
     set(SEED_API OFF)
 endif()
 
-# Provider shared library
-add_library(hybrid-provider MODULE
+# Provider sources, shared by the standalone module and the embeddable library.
+set(HYBRID_SOURCES
     hybrid_prov.c
     hybrid_keymgmt.c
     hybrid_kem.c
@@ -242,13 +242,12 @@ add_library(hybrid-provider MODULE
     hybrid_encoder.c
     hybrid_decoder.c
 )
-target_include_directories(hybrid-provider PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(hybrid-provider PRIVATE OpenSSL::Crypto)
+set(HYBRID_DEFS "")
 if(HYBRID_KEM_ENCODERS)
-    target_compile_definitions(hybrid-provider PRIVATE HYBRID_KEM_ENCODERS)
+    list(APPEND HYBRID_DEFS HYBRID_KEM_ENCODERS)
 endif()
 if(HYBRID_COMPOSITE)
-    target_sources(hybrid-provider PRIVATE
+    list(APPEND HYBRID_SOURCES
         composite_keymgmt.c
         composite_sig.c
         composite_encoder.c
@@ -259,8 +258,43 @@ if(HYBRID_COMPOSITE)
         composite_kem_encoder.c
         composite_kem_decoder.c
     )
-    target_compile_definitions(hybrid-provider PRIVATE HYBRID_COMPOSITE)
+    list(APPEND HYBRID_DEFS HYBRID_COMPOSITE)
 endif()
+
+# Are we the top-level project, or embedded via add_subdirectory() by a host
+# provider (e.g. oqsprovider)? (PROJECT_IS_TOP_LEVEL needs CMake 3.21.)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(HYBRID_TOP_LEVEL ON)
+else()
+    set(HYBRID_TOP_LEVEL OFF)
+endif()
+
+# Embeddable static library (see hybrid_embed.h): the same sources compiled with
+# HYBRID_EMBEDDED, which drops OSSL_provider_init in favour of hybrid_embed_*.
+# Built on demand only (EXCLUDE_FROM_ALL) so it never slows the normal build.
+add_library(hybrid-embed STATIC EXCLUDE_FROM_ALL ${HYBRID_SOURCES})
+target_include_directories(hybrid-embed
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${OPENSSL_INCLUDE_DIR})
+# The host's provider name, for the "provider=<name>" property definitions.
+set(HYBRID_EMBED_PROVIDER_NAME "hybrid" CACHE STRING
+    "Provider name the embedded algorithms are registered under (the host's)")
+target_compile_definitions(hybrid-embed PRIVATE HYBRID_EMBEDDED ${HYBRID_DEFS}
+    "HYBRID_PROVIDER_NAME=\"${HYBRID_EMBED_PROVIDER_NAME}\"")
+set_target_properties(hybrid-embed PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    C_VISIBILITY_PRESET hidden)
+
+if(NOT HYBRID_TOP_LEVEL)
+    # A host only needs hybrid-embed; skip the module and the test suite.
+    return()
+endif()
+
+# Provider shared library
+add_library(hybrid-provider MODULE ${HYBRID_SOURCES})
+target_include_directories(hybrid-provider PRIVATE ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(hybrid-provider PRIVATE OpenSSL::Crypto)
+target_compile_definitions(hybrid-provider PRIVATE ${HYBRID_DEFS})
 # No SUFFIX override: an OpenSSL provider is a CMake MODULE library, whose
 # default suffix is already the right one per platform (.so on Linux/macOS,
 # .dll on Windows) — matching what OpenSSL's loader looks for. PREFIX "" just

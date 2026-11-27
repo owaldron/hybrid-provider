@@ -1046,7 +1046,7 @@ static const OSSL_PARAM *hybrid_gen_settable_params(void *vgctx,
 #define DECLARE_HYBRID_KMGMT(name, is_kem_val, variant)                      \
     static void *hybrid_##name##_new(void *provctx)                          \
     {                                                                        \
-        HYBRID_PROV_CTX *ctx = provctx;                                      \
+        HYBRID_PROV_CTX *ctx = HYBRID_ENTRY_CTX(provctx);                                    \
         OSSL_LIB_CTX *libctx =                                               \
             ctx ? HYBRID_COMPONENT_LIBCTX(ctx) : NULL;                       \
         HYBRID_KEY *k = hybrid_key_new(is_kem_val, variant, libctx, NULL);   \
@@ -1057,7 +1057,7 @@ static const OSSL_PARAM *hybrid_gen_settable_params(void *vgctx,
     static void *hybrid_##name##_gen_init(void *provctx, int selection,      \
                                           const OSSL_PARAM params[])         \
     {                                                                        \
-        HYBRID_PROV_CTX *pctx = provctx;                                     \
+        HYBRID_PROV_CTX *pctx = HYBRID_ENTRY_CTX(provctx);                                    \
         HYBRID_GEN_CTX *gctx;                                               \
         /* Accept any selection asking for key material — in particular the   \
          * OSSL_KEYMGMT_SELECT_KEYPAIR libssl passes when generating a TLS     \

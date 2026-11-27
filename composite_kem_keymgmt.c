@@ -498,12 +498,12 @@ err:
 #define DECLARE_COMPOSITE_KEM_KMGMT(cf, idx)                                   \
     static void *composite_##cf##_kem_new(void *provctx)                      \
     {                                                                          \
-        return composite_kem_key_new(provctx, &composite_kem_table[idx]);     \
+        return composite_kem_key_new(HYBRID_ENTRY_CTX(provctx), &composite_kem_table[idx]);     \
     }                                                                          \
     static void *composite_##cf##_kem_gen_init(void *provctx, int selection,  \
                                                const OSSL_PARAM params[])      \
     {                                                                          \
-        return composite_kem_gen_init_info(provctx,                           \
+        return composite_kem_gen_init_info(HYBRID_ENTRY_CTX(provctx),                           \
                                            &composite_kem_table[idx]);        \
     }                                                                          \
     const OSSL_DISPATCH composite_##cf##_kem_kmgmt_functions[] = {             \
